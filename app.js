@@ -1,17 +1,18 @@
 const http = require('http')
 
+const Persons = require('./controller')
+
 const PORT = process.env.PORT || 5000
 
 const server = http.createServer(
     async (req, res) => {
-        if (req.url == '/api' && req.method == 'GET') {
+        if (req.url == '/api/persons' && req.method == 'GET') {
+            const persons = await new Persons().getPersons()
             res.writeHead(
-                200, 
+                200,
                 {'Content-Type': 'application/json'}
             )
-
-            res.write('Hi, you reach api endpoint. How can I help you today?')
-            res.end()
+            res.end(JSON.stringify(persons))
         } else {
             res.writeHead(
                 404,
