@@ -13,10 +13,8 @@ const server = http.createServer(
             req.method == 'GET'
         ) {
             const persons = await new Persons().getPersons()
-            res.writeHead(
-                200,
-                {'Content-Type': 'application/json'}
-            )
+
+            res.writeHead(200, {'Content-Type': 'application/json'})
             res.end(JSON.stringify(persons))
         } 
 
@@ -28,8 +26,8 @@ const server = http.createServer(
             try {
                 const id = req.url.split('/')[3]
                 const person = await new Persons().getPerson(id)
+
                 res.writeHead(200, {'Content-Type': 'application/json'})
-                console.log('person: ', person)
                 res.end(JSON.stringify(person))
             } catch (error) {
                 res.writeHead(404, {'Content-Type': 'application/json'})
@@ -37,6 +35,23 @@ const server = http.createServer(
             }
         }
 
+        // * /api/persons/:id : DELETE
+        else if (
+            req.url.match(/\/api\/persons\/([0-9]+)/) && 
+            req.method === 'DELETE'
+        ) {
+            try {
+                const id = req.url.split('/')[3]
+                let message = await new Persons().deletePerson(id)
+                
+                res.writeHead(200, { "Content-Type": "application/json" })
+                res.end(JSON.stringify({ message }))
+            } catch (error) {        
+                res.writeHead(404, { "Content-Type": "application/json" })            
+                res.end(JSON.stringify({ message: error }))
+            }
+        }
+      
         // * /api/persons/ : POST
         else if (
             req.url == '/api/persons' &&
@@ -44,6 +59,7 @@ const server = http.createServer(
         ) {
             const personData = await getReqData(req)
             const person = await new Persons().createPerson(JSON.parse(personData))
+
             res.writeHead(200, {'Content-Type': 'application/json'})
             res.end(JSON.stringify(person))
         }
