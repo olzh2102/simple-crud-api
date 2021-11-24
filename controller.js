@@ -7,7 +7,7 @@ class PersonsController {
     }
 
     // * get persons
-    async getPersons(id) {
+    async getPerson(id) {
         return new Promise((resolve, reject) => {
             let person = persons.find((p) => p.id == parseInt(id))
 
@@ -15,6 +15,17 @@ class PersonsController {
                 resolve(person)
             else
                 reject(`Person with id ${id} not found.`)
+        })
+    }
+
+    // * create person
+    async createPerson(person) {
+        return new Promise((resolve, _) => {
+            let newPerson = {
+                id: Math.floor(5 + Math.random() * 10),
+                ...person
+            }
+            resolve(newPerson)
         })
     }
 }
