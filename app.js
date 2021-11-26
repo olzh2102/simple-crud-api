@@ -87,3 +87,5 @@ server.listen(
 function isMatch(url, method) {
     return (exactUrl = '', exactMethod, cb = () => false) => (exactUrl == url || cb()) && exactMethod == method 
 }
+
+module.exports = server
