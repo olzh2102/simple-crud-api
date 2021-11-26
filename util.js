@@ -1,11 +1,13 @@
 function getReqData(req) {
     return new Promise((resolve, reject) => {
         try {
-            let res = []
+            let res = ''
 
             req.on(
                 'data', 
-                (chunk) => res.push(String(chunk))
+                (chunk) => {
+                    res += String(chunk)
+                }
             )
 
             req.on(

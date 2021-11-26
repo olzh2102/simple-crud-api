@@ -29,10 +29,22 @@ class PersonsController {
         })
     }
 
+    // * update person
+    updatePerson(id, updatedPerson) {
+        return new Promise((resolve, reject) => {
+            let person = persons.find((person) => person.id == parseInt(id))
+
+            if (!person)
+                reject(`No person with id ${id} found`)
+
+            person = { ...person, ...updatedPerson }
+            resolve(person)
+        })
+    }
+
     // * delete person
     deletePerson(id) {
         return new Promise((resolve, reject) => {
-            console.log('dadas', id)
             let person = persons.find((person) => person.id == parseInt(id))
             
             if (!person)

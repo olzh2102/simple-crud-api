@@ -1,17 +1,18 @@
 const http = require('http')
+const { pipeline } = require('stream')
 
 const Persons = require('./controller')
 const { getReqData } = require('./util')
 
 const PORT = process.env.PORT || 5000
+const server = http.createServer()
 
-const server = http.createServer(
-    async (req, res) => {
+server.on('request', async (req, res) => {
+        const { url, method } = req
+        const isEq = isMatch(url, method)
+        
         // * /api/persons : GET
-        if (
-            req.url === '/api/persons' && 
-            req.method == 'GET'
-        ) {
+        if (isEq('/api/persons', 'GET')) {
             const persons = await new Persons().getPersons()
 
             res.writeHead(200, {'Content-Type': 'application/json'})
@@ -19,10 +20,7 @@ const server = http.createServer(
         } 
 
         // * /api/persons/:id : GET
-        else if (
-            req.url.match(/\/api\/persons\/([0-9]+)/) &&
-            req.method == 'GET'
-        ) {
+        else if (isEq('', 'GET', () => url.match(/\/api\/persons\/([0-9]+)/))) {
             try {
                 const id = req.url.split('/')[3]
                 const person = await new Persons().getPerson(id)
@@ -35,11 +33,23 @@ const server = http.createServer(
             }
         }
 
+        // * /api/persons/:id : UPDATE
+        else if (isEq('', 'PUT', () => url.match(/\/api\/persons\/([0-9]+)/))) {
+            try {
+                const id = req.url.split("/")[3]
+                const personData = await getReqData(req)
+                let updated_person = await new Persons().updatePerson(id, personData);
+
+                res.writeHead(200, { "Content-Type": "application/json" });d 
+                res.end(JSON.stringify(updated_person));
+            } catch (error) {
+                res.writeHead(404, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ message: error }));
+            }
+        }
+
         // * /api/persons/:id : DELETE
-        else if (
-            req.url.match(/\/api\/persons\/([0-9]+)/) && 
-            req.method === 'DELETE'
-        ) {
+        else if (isEq('', 'DELETE', () => url.match(/\/api\/persons\/([0-9]+)/))) {
             try {
                 const id = req.url.split('/')[3]
                 let message = await new Persons().deletePerson(id)
@@ -53,10 +63,7 @@ const server = http.createServer(
         }
       
         // * /api/persons/ : POST
-        else if (
-            req.url == '/api/persons' &&
-            req.method == 'POST'
-        ) {
+        else if (isEq('/api/persons', 'POST')) {
             const personData = await getReqData(req)
             const person = await new Persons().createPerson(JSON.parse(personData))
 
@@ -76,3 +83,7 @@ server.listen(
     PORT,
     () => { console.log(`server is running on port: ${PORT}`) }
 )
+
+function isMatch(url, method) {
+    return (exactUrl = '', exactMethod, cb = () => false) => (exactUrl == url || cb()) && exactMethod == method 
+}
