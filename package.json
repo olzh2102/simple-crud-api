@@ -7,7 +7,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "build": "webpack && node build/index.js"
+    "start:prod": "webpack && node build/index.js",
+    "start:dev": "nodemon app.js"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,9 @@
     "supertest": "^6.1.6",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "uuid": "^8.3.2"
   }
 }

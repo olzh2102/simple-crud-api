@@ -20,6 +20,17 @@ function getReqData(req) {
     })
 }
 
+function listenOn(port) {
+    return () => console.log(`server is running on port: ${port}`)
+}
+
+function routeNotFound(res) {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ message: "Route not found" }));
+}
+
 module.exports = {
-    getReqData
+    getReqData,
+    listenOn,
+    routeNotFound
 }
