@@ -1,163 +1,120 @@
-const { Buffer } = require('buffer')
-const { writeFile, appendFile, readFileSync } =  require('fs')
-const fs =  require('fs')
-const path =  require('path')
-const { pipeline, Transform } = require('stream')
-const { v4: uuidv4, validate: uuidValidate } = require('uuid');
+const { validate: uuidValidate } = require('uuid');
 
-const { findAll, findById, remove, create } = require('./model')
-const { getReqData } = require('./util')
-const { REQUIRED_FIELDS } = require('./constants')
-const persons = require('./data')
+const { 
+    findAll, 
+    findById, 
+    create 
+} = require('./model')
+const { getReqData, writeInto, hasRequiredFields, isCorrectType } = require('./util')
+const { REQUIRED_FIELDS, HTTP_STATUS } = require('./constants')
 
-function getData(filename) {
-    return new Promise((resolve, reject) => {
-        fs.readFile(
-            path.join(__dirname, filename), 
-            'utf-8', 
-            (err, data) =>  {
-                if (err) reject(err)
-                else resolve(JSON.parse(data))
-            })
-    })
-}
-
-function writeData(filename, data) {
-    return new Promise((_, reject) => {
-        fs.writeFile(
-            path.join(__dirname, filename), 
-            JSON.stringify(data), 
-            'utf-8',
-            (err) =>  {
-                if (err) reject(err)
-            }
-        )
-    })
-}
-
-async function getPersons(req, res) {
+async function getPersons(req, { response }, pathToDB) {
     try {
-        // const persons = await findAll()
-        const data = await getData('./data.json')
-        console.log(data.persons)
-
-        res.writeHead(200, {'Content-Type': 'application/json'})
-        res.end(JSON.stringify(data.persons))
+        const data = await findAll(pathToDB)
+        response(HTTP_STATUS.OK)(data.persons)
     } catch (error) {
-        // console.log(error)
-        res.writeHead(500, {'Content-Type': 'application/json'})
-        res.end(JSON.stringify({ message: error.message }))
+        response(HTTP_STATUS.SERVER)({ message: error.message })
+        console.error(error)
     }
 }
 
-function getPerson(req, res) {
+function getPerson(req, { response }, pathToDB) {
     return async (id) => {
-
-        if (!uuidValidate(id)) {
-            res.writeHead(400, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify({ message: 'Not valid id' }))
-        }
-
+        if (!uuidValidate(id))
+            response(HTTP_STATUS.BAD_REQ)({ message: 'Not valid id' })
+    
         try {
-            const data = await getData('./data.json')
-            const person = await findById(id, data.persons)
+            const person = await findById(id, pathToDB)
 
-            if (!person) {
-                res.writeHead(404, {'Content-Type': 'application/json'})
-                res.end(JSON.stringify({ message: 'Person not found' }))
-            } else {   
-                res.writeHead(200, {'Content-Type': 'application/json'})
-                res.end(JSON.stringify(person))
-            }
+            !person 
+                ? response(HTTP_STATUS.NOT_FOUND)({ message: `Person with id ${id} not found` })
+                : response(HTTP_STATUS.OK)(person)
         } catch (error) {
-            console.log(error)
-        }``
-    }
-}
-
-function deletePerson(req, res) {
-    return async (id) => {
-
-        if (!uuidValidate(id)) {
-            res.writeHead(400, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify({ message: 'Not valid id' }))
-        }
-
-        try {
-            let person = await findById(id)
-
-            if (!person) {
-                res.writeHead(404, {'Content-Type': 'application/json'})
-                res.end(JSON.stringify({ message: 'Person not found' }))
-            } 
-            
-            else {   
-                await remove(id)
-
-                res.writeHead(204, {'Content-Type': 'application/json'})
-                res.end(JSON.stringify({ message: `Person with id ${id} is deleted` }))
-            }
-        } catch (error) {        
-            console.log(error)
+            response(HTTP_STATUS.SERVER)({ message: error.message })
+            console.error(error)
         }
     }
 }
 
-async function createPerson(req, res) {
+async function createPerson(req, { res, response }, pathToDB) {
+    const hasFields = hasRequiredFields(REQUIRED_FIELDS)
+
     try {
         let personData = await getReqData(req)
-        personData = JSON.parse(personData)
-
-        if (!REQUIRED_FIELDS.every((f) => personData.hasOwnProperty(f))) {
-            res.writeHead(400, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify({ message: 'Request body does not contain required fields' })) 
-        }
-
-        let data = await getData('./data.json')
-        const persons = data.persons
-
-        personData = await create(personData)
-
-        persons.push(personData)
-
-        data = { persons }
-
-        writeData('./data.json', data)
+        personData = await create(JSON.parse(personData))
         
-        res.writeHead(201, {'Content-Type': 'application/json'})
-        res.end(JSON.stringify(personData)) 
+        if (!hasFields(personData))
+            response(HTTP_STATUS.BAD_REQ)({ message: 'Request body does not contain required fields' })
+        
+        const res = isCorrectType(personData)
+        if (res.length > 0) {
+            response(HTTP_STATUS.BAD_REQ)({ message: `TypeError: ${res.join(', ')}` })
+        } else {
+
+            let data = await findAll(pathToDB)
+            data.persons.push(personData)
+            data = { persons: data.persons }
+    
+            writeInto(pathToDB, data)
+    
+            response(HTTP_STATUS.CREATED)(personData)
+        }
     } catch (error) {
-        console.log(error)
+        response(500)({ message: error.message })
+        console.error(error)
     }
 }
 
-function updatePerson(req, res) {
+function updatePerson(req, { res, response }, pathToDB) {
     return async (id) => {
-
-        if (!uuidValidate(id)) {
-            res.writeHead(400, {'Content-Type': 'application/json'})
-            res.end(JSON.stringify({ message: 'Not valid id' }))
-        }
-
+        if (!uuidValidate(id))
+            response(HTTP_STATUS.BAD_REQ)({ message: 'Bad Request: not valid id provided' })
+     
         try {
-            let person = await findById(id)
+            let person = await findById(id, pathToDB)
 
-            if (!person) {
-                res.writeHead(404, {'Content-Type': 'application/json'})
-                res.end(JSON.stringify({ message: 'Person not found' }))
-            } 
+            if (!person) 
+                response(HTTP_STATUS.NOT_FOUND)({ message: `Person with id ${id} not found` })
 
             else {
                 let body = await getReqData(req)
                 body = JSON.parse(body)
 
                 const updated = { ...person, ...body }
+                let data = await findAll(pathToDB)
+                data = data.persons.filter((p) => p.id != id)
 
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify(updated)) 
+                writeInto(pathToDB, { persons: data.concat(updated) })
+
+                response(HTTP_STATUS.OK)(updated)
             }
         } catch (error) {
-            console.log(error)
+            response(HTTP_STATUS.SERVER)({ message: error.message })
+            console.error(error)
+        }
+    }
+}
+
+function deletePerson(req, { res, response }, pathToDB) {
+    return async (id) => {
+        if (!uuidValidate(id))
+            response(400)({ message: 'Bad Request: not valid id provided' })
+            
+        try {
+            const data = await findAll(pathToDB)
+            const person = await findById(id, pathToDB)
+
+            if (!person)
+                response(HTTP_STATUS.NOT_FOUND)({ message: `Person with id ${id} not found` })
+            
+            else {   
+                const persons = data.persons.filter((p) => p.id != id)
+                writeInto(pathToDB, { persons })
+                response(HTTP_STATUS.SUCCESS_EMPTY)({ message: `Person with id ${id} is deleted` })
+            }
+        } catch (error) {        
+            response(HTTP_STATUS.SERVER)({ message: error.message })
+            console.error(error)
         }
     }
 }

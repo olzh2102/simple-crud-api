@@ -1,3 +1,5 @@
+const { HTTP_METHODS } = require('./constants')
+const { handleResponse } = require('./util')
 const { 
     getPersons, 
     getPerson, 
@@ -5,47 +7,49 @@ const {
     updatePerson, 
     createPerson 
 } = require('./controller')
-const { HTTP_METHODS, REGEX } = require('./constants')
-const { routeNotFound } = require('./util')
 
-async function handleRequest(req, res) {
-    const { url, method } = req
+function handleRequest(pathToDB) {
+    return async (req, res) => {
+        const { url, method } = req
+        const response = handleResponse(res)
 
-    if (
-        method == HTTP_METHODS.GET && 
-        url == '/api/person'
-    ) getPersons(req, res)
-    
+        if (
+            method == HTTP_METHODS.GET && 
+            url == '/api/person'
+        ) getPersons(req, { res, response }, pathToDB)
+        
 
-    else if (
-        method == HTTP_METHODS.GET && 
-        url.match(REGEX)
-    ) {
-        const id = url.split('/')[3]
-        console.log(id)
-        getPerson(req, res)(id) 
+        else if (
+            method == HTTP_METHODS.GET && 
+            url.split('/').length >= 3
+        ) {
+            const id = url.split('/')[3]
+            getPerson(req, { res, response }, pathToDB)(id) 
+        }
+
+        else if (
+            method == HTTP_METHODS.POST && 
+            url == '/api/person'
+        ) createPerson(req, { res, response }, pathToDB)
+
+        else if (
+            method == HTTP_METHODS.PUT && 
+            url.split('/').length >= 3
+        ) {
+            const id = url.split('/')[3]
+            updatePerson(req, { res, response }, pathToDB)(id)
+        }
+
+        else if (
+            method == HTTP_METHODS.DELETE && 
+            url.split('/').length >= 3
+        ) {
+            const id = url.split('/')[3]
+            deletePerson(req, { res, response }, pathToDB)(id)
+        }
+        
+        else response(404)({  message: 'Route not found' })
     }
-
-    else if (
-        method == HTTP_METHODS.DELETE && 
-        url.match(REGEX)
-    ) deletePerson(req, res)(id)
-    
-
-    else if (
-        method == HTTP_METHODS.PUT && 
-        url.match(REGEX)
-    ) {
-        const id = url.split('/')[3]
-        updatePerson(req, res)(id)
-    }
-
-    else if (
-        method == HTTP_METHODS.POST && 
-        url == '/api/person'
-    ) createPerson(req, res)
-
-    else routeNotFound(res)
 }
 
 module.exports = handleRequest

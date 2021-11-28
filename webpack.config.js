@@ -6,8 +6,8 @@ module.exports = {
     mode: NODE_ENV,
     target: 'node',
     output: {
-        path: path.resolve(__dirname, 'build'),
-        filename: 'index.js'
+        path: path.resolve(__dirname),
+        filename: 'bundle.js'
     },
     resolve: {
         extensions: ['.js']

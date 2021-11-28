@@ -1,15 +1,22 @@
 require('dotenv').config()
 
 const http = require('http')
-
 const router = require('./route')
-const { listenOn } = require('./util')
 
-const PORT = process.env.PORT || 1234
-const server = http.createServer()
 
-server
-    .on('request', router)
-    .listen(PORT, listenOn(PORT))
+function main(db, port) {
+    const server = http.createServer()
+    
+    server
+        .on('request', router(db))
+        .listen(port, () => console.log(`server is running on port: ${port}`))
 
-module.exports = server
+    return server
+}
+
+const app = main('./data.json', process.env.PORT || 1234)
+
+module.exports = {
+    app,
+    main
+}

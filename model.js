@@ -1,18 +1,33 @@
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs')
+const path =  require('path')
 
-// const rawData = fs.readFileSync('./data.json')
-// const persons = JSON.parse(rawData)
-const persons = require('./data')
+const { writeInto } = require('./util')
 
-const findAll = () => new Promise((resolve, _) => resolve(persons))
-const findById = (id, data) => new Promise((resolve, _) => 
-    resolve(data.find((p) => p.id == id))
-)
-const remove = (id) => new Promise((resolve, reject) => {
-    persons = persons.filter((p) => p.id !== id)
-    resolve(persons)     
-})
+function findAll(filename) {
+    return new Promise((resolve, reject) => {
+        fs.readFile(
+            path.join(__dirname, filename), 
+            'utf-8', 
+            (err, data) =>  {
+                if (err) reject(err)
+                else resolve(JSON.parse(data))
+            })
+    })
+}
+
+const findById = async (id, pathToDB) => {
+    const data = await findAll(pathToDB)
+    return new Promise((resolve, _) => 
+        resolve(data.persons.find((p) => p.id == id))
+    )
+}
+
+const remove = (id) => async (data) => {
+    const updated = data.filter((p) => p.id !== id)
+    await writeInto('./data.json', { persons: updated })
+}
+
 const create = (person) => new Promise((resolve, _) => {
     let newPerson = {
         id: uuidv4(),
