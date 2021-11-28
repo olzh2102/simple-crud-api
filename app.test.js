@@ -4,7 +4,7 @@ const uuid = require('uuid');
 const {app, main} = require('./app')
 const {writeInto} = require('./util')
 
-const server = main('./data.test.json', process.env.TEST_PORT)
+const server = main('./data.test.json', process.env.TEST_PORT || 8000)
 const request = supertest(server)
 
 jest.mock('uuid', () => {
