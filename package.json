@@ -1,0 +1,33 @@
+{
+  "name": "simple-crud-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "start:prod": "webpack && node bundle.js",
+    "start:dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olzh2102/simple-crud-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/olzh2102/simple-crud-api/issues"
+  },
+  "homepage": "https://github.com/olzh2102/simple-crud-api#readme",
+  "devDependencies": {
+    "jest": "^27.3.1",
+    "supertest": "^6.1.6",
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1"
+  },
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "uuid": "^8.3.2"
+  }
+}
